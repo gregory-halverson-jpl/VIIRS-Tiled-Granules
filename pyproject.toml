@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=60", "setuptools-scm>=8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "VIIRS_tiled_granules"
+version = "1.0.0"
+description = "Visible Infrared Imaging Radiometer Suite (VIIRS) Sinusoidal Tile Product Search and Download Utility"
+readme = "README.md"
+authors = [
+    { name = "Gregory H. Halverson", email = "gregory.h.halverson@jpl.nasa.gov" },
+    { name = "Evan Davis", email = "evan.w.davis@jpl.nasa.gov" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "colored-logging",
+    "earthaccess",
+    "modland>=1.1.0",
+    "python-dateutil",
+    "rasters",
+    "requests"
+]
+
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov",
+]
+
+[tool.setuptools.package-data]
+VIIRS_tiled_granules = ["*.txt"]
+
+[project.urls]
+"Homepage" = "https://github.com/JPL-Evapotranspiration-Algorithms/VIIRS-Tiled-Granules"
+
+[tool.setuptools.packages.find]
+include = ["VIIRS_tiled_granules"]
+exclude = ["data", "build", "tests"]
