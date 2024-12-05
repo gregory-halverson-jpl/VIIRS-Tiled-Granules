@@ -9,9 +9,10 @@ __author__ = "Gregory H. Halverson, Evan Davis"
 
 _AUTH = None
 
-def VIIRS_CMR_login() -> earthaccess.Auth:
+def authenticate(username: str = None, password: str = None) -> earthaccess.Auth:
     """
-    Login to Earthdata using netrc credentials if available, falling back to environment variables.
+    Login to Earthdata using provided credentials, netrc credentials if available, 
+    or falling back to environment variables.
     """
     # Only login to earthaccess once
     global _AUTH
@@ -19,6 +20,11 @@ def VIIRS_CMR_login() -> earthaccess.Auth:
         return _AUTH
 
     try:
+        # Use provided username and password if available
+        if username and password:
+            _AUTH = earthaccess.login(strategy="provided", username=username, password=password)
+            return _AUTH
+
         # Attempt to use netrc for credentials
         secrets = netrc.netrc()
         auth = secrets.authenticators("urs.earthdata.nasa.gov")
@@ -31,7 +37,7 @@ def VIIRS_CMR_login() -> earthaccess.Auth:
             _AUTH = earthaccess.login(strategy="environment")
             return _AUTH
         else:
-            raise CMRServerUnreachable("Missing netrc credentials or environment variables 'EARTHDATA_USERNAME' and 'EARTHDATA_PASSWORD'")
+            raise CMRServerUnreachable("Missing netrc credentials, environment variables 'EARTHDATA_USERNAME' and 'EARTHDATA_PASSWORD', or provided username and password")
 
     except Exception as e:
         raise CMRServerUnreachable(e)

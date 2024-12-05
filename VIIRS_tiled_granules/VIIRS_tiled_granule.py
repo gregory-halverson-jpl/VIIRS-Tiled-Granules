@@ -20,7 +20,7 @@ from modland import parsehv, generate_modland_grid
 
 from rasters import Raster, RasterGrid, RasterGeometry
 
-from .VIIRS_filename_parsing import *
+from .granule_ID import *
 
 # Define colormaps for NDVI and Albedo
 NDVI_COLORMAP = LinearSegmentedColormap.from_list(
@@ -41,7 +41,7 @@ DEFAULT_WORKING_DIRECTORY = "."
 
 logger = logging.getLogger(__name__)
 
-class VIIRSGranule:
+class VIIRSTiledGranule:
     """
     Class representing a VIIRS Granule.
     """
@@ -62,27 +62,25 @@ class VIIRSGranule:
         display_dict = {
             "filename": self.filename
         }
-
         display_string = json.dumps(display_dict, indent=2)
-
         return display_string
 
     @property
-    def filename(self):
+    def filename(self) -> str:
         """
         Return the filename of the granule.
         """
         return self._filename
     
     @property
-    def filename_absolute(self):
+    def filename_absolute(self) -> str:
         """
         Return the absolute path of the filename.
         """
         return abspath(expanduser(self.filename))
 
     @property
-    def filename_base(self):
+    def filename_base(self) -> str:
         """
         Return the base name of the filename.
         """
@@ -96,35 +94,35 @@ class VIIRSGranule:
         return splitext(self.filename_base)[0]
 
     @property
-    def tile(self):
+    def tile(self) -> str:
         """
         Return the tile information from the filename.
         """
         return parse_VIIRS_tile(self.filename)
 
     @property
-    def hv(self):
+    def hv(self) -> tuple:
         """
         Return the horizontal and vertical tile indices.
         """
         return parsehv(self.tile)
 
     @property
-    def h(self):
+    def h(self) -> int:
         """
         Return the horizontal tile index.
         """
         return self.hv[0]
 
     @property
-    def v(self):
+    def v(self) -> int:
         """
         Return the vertical tile index.
         """
         return self.hv[1]
 
     @property
-    def date_UTC(self):
+    def date_UTC(self) -> datetime:
         """
         Return the date in UTC from the filename.
         """
