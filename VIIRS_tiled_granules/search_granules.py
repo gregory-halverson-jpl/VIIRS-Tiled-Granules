@@ -7,6 +7,7 @@ import earthaccess
 
 import colored_logging as cl
 from rasters import Point, Polygon, RasterGeometry
+from modland import generate_modland_grid
 
 from .exceptions import *
 
@@ -56,8 +57,9 @@ def search_granules(
         date_UTC: Union[date, str] = None,
         start_date_UTC: Union[date, str] = None,
         end_date_UTC: Union[date, str] = None,
-        target_geometry: Union[Point, Polygon, RasterGeometry] = None,
-        tile: str = None) -> List[earthaccess.search.DataGranule]:
+        geometry: Union[Point, Polygon, RasterGeometry] = None,
+        tile: str = None,
+        tile_size: int = None) -> List[earthaccess.search.DataGranule]:
     """
     Search for VIIRS granules within a specified date range and target geometry.
 
@@ -90,19 +92,25 @@ def search_granules(
     if end_date_UTC is None:
         end_date_UTC = start_date_UTC
 
+    if geometry is None and tile_size is None:
+        raise ValueError("neither geometry nor tile size given")
+
+    if geometry is None:
+        geometry = generate_modland_grid(tile=tile, tile_size=tile_size)
+
     # Create the query with the concept ID and temporal range
     query = earthaccess.granule_query() \
         .concept_id(concept_ID) \
         .temporal(earliest_datetime(start_date_UTC), latest_datetime(end_date_UTC))
 
     # Add spatial constraints to the query if provided
-    if isinstance(target_geometry, Point):
+    if isinstance(geometry, Point):
         # If the target geometry is a Point, add a point constraint to the query
-        query = query.point(target_geometry.x, target_geometry.y)
+        query = query.point(geometry.x, geometry.y)
     
-    if isinstance(target_geometry, Polygon):
+    if isinstance(geometry, Polygon):
         # If the target geometry is a Polygon, add a polygon constraint to the query
-        ring = target_geometry.exterior
+        ring = geometry.exterior
         
         # Ensure the ring is counter-clockwise
         if not ring.is_ccw:
@@ -113,9 +121,9 @@ def search_granules(
         # Add the polygon coordinates to the query
         query = query.polygon(coordinates)
     
-    if isinstance(target_geometry, RasterGeometry):
+    if isinstance(geometry, RasterGeometry):
         # If the target geometry is a RasterGeometry, add a polygon constraint to the query
-        ring = target_geometry.corner_polygon_latlon.exterior
+        ring = geometry.corner_polygon_latlon.exterior
         
         # Ensure the ring is counter-clockwise
         if not ring.is_ccw:
