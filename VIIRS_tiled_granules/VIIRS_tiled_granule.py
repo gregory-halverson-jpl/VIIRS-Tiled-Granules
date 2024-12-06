@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Union, List, Dict, Any
 import logging
 from datetime import datetime
 from glob import glob
@@ -144,3 +144,109 @@ class VIIRSTiledGranule:
         """
         with h5py.File(self.filename_absolute, "r") as file:
             return list(file[f"HDFEOS/GRIDS/{grid}/Data Fields/"].keys())
+        
+    def DN(self, variable: str, grid: str, geometry: RasterGeometry = None) -> Raster:
+        with h5py.File(self.filename_absolute, "r") as file:
+            dataset_name = f"HDFEOS/GRIDS/{grid}/Data Fields/{variable}"
+            dataset = file[dataset_name]
+            DN_geometry = generate_modland_grid(tile=self.tile, tile_size=dataset.shape[0])
+            # TODO find a way to only load the pixels needed for the target geometry
+            DN_array = np.array(dataset)
+            DN = Raster(DN_array, geometry=DN_geometry)
+
+        if geometry is not None:
+            DN = DN.to_geometry(geometry)
+
+        return DN
+    
+    def attributes(self, variable: str, grid: str) -> Dict:
+        with h5py.File(self.filename_absolute, "r") as file:
+            dataset_name = f"HDFEOS/GRIDS/{grid}/Data Fields/{variable}"
+            dataset = file[dataset_name]
+            attributes = dict(dataset.attrs)
+        
+        return attributes
+    
+    def layer(
+            self, 
+            variable: str, 
+            grid: str,
+            fill: int = None,
+            scale: float = None,
+            offset: float = None,
+            valid_min: int = None,
+            valid_max: int = None,
+            geometry: RasterGeometry = None) -> Raster:
+        DN = self.DN(
+            variable=variable, 
+            grid=grid,
+            geometry=geometry
+        )
+
+        attributes = self.attributes(
+            variable=variable,
+            grid=grid
+        )
+
+        layer = DN
+
+        if fill is None and "_Fillvalue" in attributes:
+            fill = int(attributes["_Fillvalue"])
+
+        if fill is not None:
+            layer = rt.where(layer == fill, np.nan, layer)
+
+        if valid_min is None and "valid_range" in attributes:
+            valid_min = int(attributes["valid_range"][0])
+
+        if valid_min is not None:
+            layer = rt.where(layer < valid_min, np.nan, layer)
+
+        if valid_max is None and "valid_range" in attributes:
+            valid_max = int(attributes["valid_range"][1])
+
+        if valid_max is not None:
+            layer = rt.where(layer > valid_max, np.nan, layer)
+
+        if scale is None and "scale_factor" in attributes:
+            scale = float(attributes["scale_factor"])
+
+        if scale is not None:
+            layer *= scale
+        
+        if offset is None and "add_offset" in attributes:
+            offset = float(attributes["add_offset"])
+        
+        if offset is not None:
+            layer += offset
+
+        return layer
+
+    def fill(
+            self, 
+            variable: str, 
+            grid: str, 
+            fill: int = None,
+            geometry: RasterGeometry = None) -> Raster:
+        DN = self.DN(
+            variable=variable, 
+            grid=grid,
+            geometry=geometry
+        )
+
+        attributes = self.attributes(
+            variable=variable,
+            grid=grid
+        )
+
+        layer = DN
+
+        if fill is None and "_Fillvalue" in attributes:
+            fill = int(attributes["_Fillvalue"])
+
+        if fill is not None:
+            layer = layer == fill
+        else:
+            layer = Raster(np.full(layer.shape, False), geometry=layer.geometry)
+        
+        return layer
